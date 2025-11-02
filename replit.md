@@ -29,6 +29,10 @@ NAY is the Central Operations AI of the Nexus Authority, an organization that pr
 - `/nexus` - Information about Nexus Authority
 - `/help` - Display all available commands
 
+### Voice Operations
+- `/voice-join [channel]` - Establish voice presence (auto-joins your current channel if none specified)
+- `/voice-leave` - Disconnect from voice channel
+
 ### Utility
 - `/serverinfo` - Display sector (server) information
 - `/userinfo` - Display personnel file (user info)
@@ -56,6 +60,7 @@ NAY is the Central Operations AI of the Nexus Authority, an organization that pr
 - 2025-11-02: Implemented personalized username prompts
 - 2025-11-02: Added lore-specific commands (scan, status, nexus)
 - 2025-11-02: Fixed interaction timeout issues
+- 2025-11-02: Implemented voice channel support (join/leave commands)
 
 ## Environment Variables
 - `DISCORD_TOKEN`: Discord bot token (required)

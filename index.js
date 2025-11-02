@@ -1,7 +1,7 @@
-import { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, REST, Routes, PermissionFlagsBits } from 'discord.js';
 import chalk from 'chalk';
 import logger from './utils/logger.js';
-import { createTerminalEmbed, formatTerminalResponse, formatModAction, formatServerInfo, formatUserInfo } from './utils/terminal.js';
+import { createTerminalEmbed, formatTerminalResponse, formatModAction, formatServerInfo, formatUserInfo, formatThreatScan, formatStatusReport, formatNexusHelp } from './utils/terminal.js';
 
 const client = new Client({
   intents: [
@@ -23,17 +23,17 @@ if (!DISCORD_TOKEN) {
 const commands = [
   {
     name: 'kick',
-    description: '[ADMIN] Kick a member from the server',
+    description: '[NEXUS] Remove personnel from sector',
     options: [
       {
         name: 'user',
-        description: 'The user to kick',
+        description: 'Target personnel',
         type: 6,
         required: true
       },
       {
         name: 'reason',
-        description: 'Reason for kicking',
+        description: 'Reason for removal',
         type: 3,
         required: false
       }
@@ -41,17 +41,17 @@ const commands = [
   },
   {
     name: 'ban',
-    description: '[ADMIN] Ban a member from the server',
+    description: '[NEXUS] Permanently ban from sector',
     options: [
       {
         name: 'user',
-        description: 'The user to ban',
+        description: 'Target personnel',
         type: 6,
         required: true
       },
       {
         name: 'reason',
-        description: 'Reason for banning',
+        description: 'Reason for ban',
         type: 3,
         required: false
       }
@@ -59,11 +59,11 @@ const commands = [
   },
   {
     name: 'timeout',
-    description: '[ADMIN] Timeout a member',
+    description: '[NEXUS] Temporarily restrict personnel',
     options: [
       {
         name: 'user',
-        description: 'The user to timeout',
+        description: 'Target personnel',
         type: 6,
         required: true
       },
@@ -75,7 +75,7 @@ const commands = [
       },
       {
         name: 'reason',
-        description: 'Reason for timeout',
+        description: 'Reason for restriction',
         type: 3,
         required: false
       }
@@ -83,17 +83,17 @@ const commands = [
   },
   {
     name: 'warn',
-    description: '[ADMIN] Warn a member',
+    description: '[NEXUS] Issue warning to personnel',
     options: [
       {
         name: 'user',
-        description: 'The user to warn',
+        description: 'Target personnel',
         type: 6,
         required: true
       },
       {
         name: 'reason',
-        description: 'Reason for warning',
+        description: 'Warning reason',
         type: 3,
         required: true
       }
@@ -101,28 +101,55 @@ const commands = [
   },
   {
     name: 'clear',
-    description: '[ADMIN] Clear messages from a channel',
+    description: '[NEXUS] Purge messages from channel',
     options: [
       {
         name: 'amount',
-        description: 'Number of messages to delete (1-100)',
+        description: 'Number of messages (1-100)',
         type: 4,
         required: true
       }
     ]
   },
   {
+    name: 'scan',
+    description: '[NAY] Perform AOZ threat assessment on target',
+    options: [
+      {
+        name: 'target',
+        description: 'User to scan for anomalies',
+        type: 6,
+        required: true
+      }
+    ]
+  },
+  {
+    name: 'status',
+    description: '[NAY] Display Nexus Authority status report',
+    options: []
+  },
+  {
+    name: 'nexus',
+    description: '[NAY] Information about Nexus Authority',
+    options: []
+  },
+  {
+    name: 'help',
+    description: '[NAY] Display all available commands',
+    options: []
+  },
+  {
     name: 'serverinfo',
-    description: 'Display server information',
+    description: 'Display sector information',
     options: []
   },
   {
     name: 'userinfo',
-    description: 'Display user information',
+    description: 'Display personnel file',
     options: [
       {
         name: 'user',
-        description: 'The user to get info about',
+        description: 'Target personnel',
         type: 6,
         required: false
       }
@@ -130,17 +157,17 @@ const commands = [
   },
   {
     name: 'ping',
-    description: 'Check bot latency',
+    description: 'Check system latency',
     options: []
   }
 ];
 
 client.once('ready', async () => {
   logger.banner();
-  logger.success('Bot initialized successfully');
+  logger.success('NAY AI System initialized');
   logger.info('Logged in as', chalk.cyan(client.user.tag));
   logger.info('Client ID', client.user.id);
-  logger.system('Registering slash commands...');
+  logger.system('Initializing Nexus Authority protocols...');
 
   const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
@@ -149,31 +176,31 @@ client.once('ready', async () => {
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
-    logger.success('Slash commands registered globally');
+    logger.success('Command interface registered');
   } catch (error) {
     logger.error('Failed to register commands', error);
   }
 
-  logger.info('Servers', `Connected to ${client.guilds.cache.size} server(s)`);
+  logger.info('Protected Sectors', `${client.guilds.cache.size} sector(s) under protection`);
   client.guilds.cache.forEach(guild => {
-    logger.system(`  └─ ${guild.name} (${guild.memberCount} members)`);
+    logger.system(`  └─ ${guild.name} (${guild.memberCount} personnel)`);
   });
 
   startStatusRotation();
-  logger.system('Status rotation started');
-  logger.success('All systems operational');
+  logger.system('Status broadcast initiated');
+  logger.success('All Nexus systems operational - Reality protection active');
   console.log();
 });
 
 const statuses = [
-  { name: 'the server', type: 3 },
-  { name: 'for rule breakers', type: 3 },
-  { name: 'moderation logs', type: 3 },
-  { name: '/help for commands', type: 2 },
-  { name: 'server activity', type: 3 },
-  { name: 'with the ban hammer', type: 0 },
-  { name: 'terminal commands', type: 2 },
-  { name: 'security protocols', type: 0 }
+  { name: 'for AOZ threats', type: 3 },
+  { name: 'reality integrity', type: 3 },
+  { name: 'dimensional boundaries', type: 3 },
+  { name: 'Nexus protocols', type: 0 },
+  { name: 'sector activity', type: 3 },
+  { name: 'anomaly detection systems', type: 0 },
+  { name: 'Earth\'s defenses', type: 3 },
+  { name: 'reality stabilizers', type: 2 }
 ];
 
 function startStatusRotation() {
@@ -207,6 +234,8 @@ client.on('interactionCreate', async interaction => {
   
   logger.command(user.tag, commandName, guild.name);
 
+  await interaction.deferReply().catch(() => {});
+
   try {
     switch (commandName) {
       case 'ping':
@@ -227,6 +256,18 @@ client.on('interactionCreate', async interaction => {
       case 'clear':
         await handleClear(interaction);
         break;
+      case 'scan':
+        await handleScan(interaction);
+        break;
+      case 'status':
+        await handleStatus(interaction);
+        break;
+      case 'nexus':
+        await handleNexus(interaction);
+        break;
+      case 'help':
+        await handleHelp(interaction);
+        break;
       case 'serverinfo':
         await handleServerInfo(interaction);
         break;
@@ -234,9 +275,8 @@ client.on('interactionCreate', async interaction => {
         await handleUserInfo(interaction);
         break;
       default:
-        await interaction.reply({
-          embeds: [createTerminalEmbed('Unknown Command', 'Command not found in registry', 'error')],
-          ephemeral: true
+        await interaction.editReply({
+          embeds: [createTerminalEmbed('Unknown Command', 'Command not found in Nexus registry', 'error')]
         });
     }
   } catch (error) {
@@ -248,10 +288,14 @@ client.on('interactionCreate', async interaction => {
       'error'
     );
     
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
-    } else {
-      await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    try {
+      if (interaction.deferred) {
+        await interaction.editReply({ embeds: [errorEmbed] });
+      } else {
+        await interaction.reply({ embeds: [errorEmbed] });
+      }
+    } catch (e) {
+      logger.error('Could not send error message', e);
     }
   }
 });
@@ -261,38 +305,34 @@ async function handlePing(interaction) {
   const apiLatency = Math.round(client.ws.ping);
   
   const output = formatTerminalResponse(
-    'ping',
-    `Pong! 🏓\nBot Latency    : ${latency}ms\nAPI Latency    : ${apiLatency}ms\nStatus         : ${apiLatency < 200 ? 'Optimal' : 'Degraded'}`,
+    interaction.user.username,
+    'nexus-ping',
+    `Connection Status: ACTIVE\nBot Latency    : ${latency}ms\nAPI Latency    : ${apiLatency}ms\nConnection     : ${apiLatency < 200 ? 'OPTIMAL' : 'DEGRADED'}\n\n[NAY]: Systems responding normally.`,
     true
   );
   
-  await interaction.reply({
-    content: output
-  });
+  await interaction.editReply({ content: output });
 }
 
 async function handleKick(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Permission Denied', 'You lack KICK_MEMBERS permission', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Access Denied', 'Insufficient clearance level - KICK_MEMBERS required', 'error')]
     });
   }
 
   const target = interaction.options.getMember('user');
-  const reason = interaction.options.getString('reason') || 'No reason provided';
+  const reason = interaction.options.getString('reason') || 'Protocol violation';
 
   if (!target) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Invalid Target', 'User not found in server', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Invalid Target', 'Personnel not found in sector', 'error')]
     });
   }
 
   if (!target.kickable) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Action Failed', 'Cannot kick this user (role hierarchy)', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Action Failed', 'Cannot remove this personnel (insufficient authority)', 'error')]
     });
   }
 
@@ -300,9 +340,10 @@ async function handleKick(interaction) {
   
   const actionLog = formatModAction('KICK', target.user.tag, reason, interaction.user.tag);
   
-  await interaction.reply({
+  await interaction.editReply({
     content: formatTerminalResponse(
-      `mod-kick ${target.user.tag}`,
+      interaction.user.username,
+      `nexus-kick ${target.user.username}`,
       actionLog,
       true
     )
@@ -311,26 +352,23 @@ async function handleKick(interaction) {
 
 async function handleBan(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Permission Denied', 'You lack BAN_MEMBERS permission', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Access Denied', 'Insufficient clearance level - BAN_MEMBERS required', 'error')]
     });
   }
 
   const target = interaction.options.getMember('user');
-  const reason = interaction.options.getString('reason') || 'No reason provided';
+  const reason = interaction.options.getString('reason') || 'Severe protocol violation';
 
   if (!target) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Invalid Target', 'User not found in server', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Invalid Target', 'Personnel not found in sector', 'error')]
     });
   }
 
   if (!target.bannable) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Action Failed', 'Cannot ban this user (role hierarchy)', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Action Failed', 'Cannot ban this personnel (insufficient authority)', 'error')]
     });
   }
 
@@ -338,9 +376,10 @@ async function handleBan(interaction) {
   
   const actionLog = formatModAction('BAN', target.user.tag, reason, interaction.user.tag);
   
-  await interaction.reply({
+  await interaction.editReply({
     content: formatTerminalResponse(
-      `mod-ban ${target.user.tag}`,
+      interaction.user.username,
+      `nexus-ban ${target.user.username}`,
       actionLog,
       true
     )
@@ -349,34 +388,30 @@ async function handleBan(interaction) {
 
 async function handleTimeout(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Permission Denied', 'You lack MODERATE_MEMBERS permission', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Access Denied', 'Insufficient clearance level - MODERATE_MEMBERS required', 'error')]
     });
   }
 
   const target = interaction.options.getMember('user');
   const duration = interaction.options.getInteger('duration');
-  const reason = interaction.options.getString('reason') || 'No reason provided';
+  const reason = interaction.options.getString('reason') || 'Temporary restriction';
 
   if (!target) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Invalid Target', 'User not found in server', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Invalid Target', 'Personnel not found in sector', 'error')]
     });
   }
 
   if (duration < 1 || duration > 10080) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Invalid Duration', 'Duration must be between 1-10080 minutes', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Invalid Duration', 'Duration must be between 1-10080 minutes', 'error')]
     });
   }
 
   if (!target.moderatable) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Action Failed', 'Cannot timeout this user (role hierarchy)', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Action Failed', 'Cannot restrict this personnel (insufficient authority)', 'error')]
     });
   }
 
@@ -384,9 +419,10 @@ async function handleTimeout(interaction) {
   
   const actionLog = formatModAction(`TIMEOUT (${duration}m)`, target.user.tag, reason, interaction.user.tag);
   
-  await interaction.reply({
+  await interaction.editReply({
     content: formatTerminalResponse(
-      `mod-timeout ${target.user.tag} ${duration}m`,
+      interaction.user.username,
+      `nexus-timeout ${target.user.username} ${duration}m`,
       actionLog,
       true
     )
@@ -395,9 +431,8 @@ async function handleTimeout(interaction) {
 
 async function handleWarn(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Permission Denied', 'You lack MODERATE_MEMBERS permission', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Access Denied', 'Insufficient clearance level - MODERATE_MEMBERS required', 'error')]
     });
   }
 
@@ -405,17 +440,17 @@ async function handleWarn(interaction) {
   const reason = interaction.options.getString('reason');
 
   if (!target) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Invalid Target', 'User not found in server', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Invalid Target', 'Personnel not found in sector', 'error')]
     });
   }
 
   try {
     await target.send({
       content: formatTerminalResponse(
-        'mod-warn',
-        `You have been warned in ${interaction.guild.name}\nReason: ${reason}\nIssued by: ${interaction.user.tag}`,
+        target.user.username,
+        'nexus-warning',
+        `[NAY]: Official warning issued in ${interaction.guild.name}\n\nReason: ${reason}\nIssued by: ${interaction.user.tag}\n\nPlease review Nexus protocols to avoid further action.`,
         false
       )
     });
@@ -425,9 +460,10 @@ async function handleWarn(interaction) {
   
   const actionLog = formatModAction('WARN', target.user.tag, reason, interaction.user.tag);
   
-  await interaction.reply({
+  await interaction.editReply({
     content: formatTerminalResponse(
-      `mod-warn ${target.user.tag}`,
+      interaction.user.username,
+      `nexus-warn ${target.user.username}`,
       actionLog,
       true
     )
@@ -436,30 +472,119 @@ async function handleWarn(interaction) {
 
 async function handleClear(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Permission Denied', 'You lack MANAGE_MESSAGES permission', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Access Denied', 'Insufficient clearance level - MANAGE_MESSAGES required', 'error')]
     });
   }
 
   const amount = interaction.options.getInteger('amount');
 
   if (amount < 1 || amount > 100) {
-    return interaction.reply({
-      embeds: [createTerminalEmbed('Invalid Amount', 'Amount must be between 1-100', 'error')],
-      ephemeral: true
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Invalid Amount', 'Amount must be between 1-100', 'error')]
     });
   }
 
   const deleted = await interaction.channel.bulkDelete(amount, true);
   
-  await interaction.reply({
+  await interaction.editReply({
     content: formatTerminalResponse(
-      `clear ${amount}`,
-      `Successfully purged ${deleted.size} message(s)\nChannel: ${interaction.channel.name}`,
+      interaction.user.username,
+      `nexus-purge ${amount}`,
+      `Message purge complete\nDeleted: ${deleted.size} message(s)\nChannel: ${interaction.channel.name}\n\n[NAY]: Communications purged from records.`,
       true
-    ),
-    ephemeral: true
+    )
+  });
+}
+
+async function handleScan(interaction) {
+  const target = interaction.options.getMember('target');
+
+  if (!target) {
+    return interaction.editReply({
+      embeds: [createTerminalEmbed('Invalid Target', 'Personnel not found in sector', 'error')]
+    });
+  }
+
+  const accountAge = Date.now() - target.user.createdTimestamp;
+  const joinAge = Date.now() - target.joinedTimestamp;
+  const roleCount = target.roles.cache.size;
+  
+  let threatLevel = 0;
+  if (accountAge < 7 * 24 * 60 * 60 * 1000) threatLevel += 2;
+  if (joinAge < 24 * 60 * 60 * 1000) threatLevel += 1;
+  if (roleCount < 2) threatLevel += 1;
+  if (Math.random() > 0.7) threatLevel += Math.floor(Math.random() * 2);
+  
+  const scanResult = formatThreatScan(target.user.tag, threatLevel);
+  
+  await interaction.editReply({
+    content: formatTerminalResponse(
+      interaction.user.username,
+      `nexus-scan ${target.user.username}`,
+      scanResult,
+      true
+    )
+  });
+}
+
+async function handleStatus(interaction) {
+  const statusReport = formatStatusReport();
+  
+  await interaction.editReply({
+    content: formatTerminalResponse(
+      interaction.user.username,
+      'nexus-status',
+      statusReport,
+      true
+    )
+  });
+}
+
+async function handleNexus(interaction) {
+  const about = [
+    `╔════════════════════════════════════════╗`,
+    `║  NEXUS AUTHORITY                       ║`,
+    `╠════════════════════════════════════════╣`,
+    `║                                        ║`,
+    `║  The Nexus Authority is Earth's        ║`,
+    `║  primary defense against AOZs -        ║`,
+    `║  Anomalous Organisms & Zones that      ║`,
+    `║  defy conventional physics.            ║`,
+    `║                                        ║`,
+    `║  I am NAY, Central Operations AI,      ║`,
+    `║  responsible for coordination,         ║`,
+    `║  threat detection, and protocol        ║`,
+    `║  enforcement across all sectors.       ║`,
+    `║                                        ║`,
+    `║  Mission: Protect Earth's reality      ║`,
+    `║  from dimensional incursions and       ║`,
+    `║  physics-defying threats.              ║`,
+    `║                                        ║`,
+    `╚════════════════════════════════════════╝`,
+    `\n[NAY]: Together, we maintain the barriers between worlds.`
+  ].join('\n');
+  
+  await interaction.editReply({
+    content: formatTerminalResponse(
+      interaction.user.username,
+      'about-nexus',
+      about,
+      true
+    )
+  });
+}
+
+async function handleHelp(interaction) {
+  const help = formatNexusHelp();
+  
+  await interaction.editReply({
+    content: formatTerminalResponse(
+      interaction.user.username,
+      'help',
+      help,
+      true
+    )
   });
 }
 
@@ -467,9 +592,10 @@ async function handleServerInfo(interaction) {
   const guild = interaction.guild;
   const info = formatServerInfo(guild);
   
-  await interaction.reply({
+  await interaction.editReply({
     content: formatTerminalResponse(
-      'serverinfo',
+      interaction.user.username,
+      'nexus-sector-scan',
       info,
       true
     )
@@ -480,9 +606,10 @@ async function handleUserInfo(interaction) {
   const target = interaction.options.getMember('user') || interaction.member;
   const info = formatUserInfo(target);
   
-  await interaction.reply({
+  await interaction.editReply({
     content: formatTerminalResponse(
-      `userinfo ${target.user.tag}`,
+      interaction.user.username,
+      `nexus-personnel ${target.user.username}`,
       info,
       true
     )

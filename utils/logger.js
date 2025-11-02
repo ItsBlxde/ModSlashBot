@@ -25,15 +25,16 @@ class TerminalLogger {
 
   banner() {
     console.clear();
-    const banner = figlet.textSync('MOD  BOT', {
+    const banner = figlet.textSync('N A Y', {
       font: 'ANSI Shadow',
       horizontalLayout: 'default',
       verticalLayout: 'default'
     });
     console.log(chalk.cyan(banner));
     console.log(chalk.gray('═'.repeat(80)));
-    console.log(chalk.green('  Discord Moderation Bot v1.0.0'));
-    console.log(chalk.gray('  Terminal-Style Command Interface'));
+    console.log(chalk.green('  NEXUS AUTHORITY - Central Operations AI'));
+    console.log(chalk.cyan('  NAY v3.7.2 | Reality Protection System'));
+    console.log(chalk.gray('  Mission: Protect Earth from AOZ threats'));
     console.log(chalk.gray('═'.repeat(80)));
     console.log();
   }

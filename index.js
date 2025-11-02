@@ -1,4 +1,5 @@
 import { Client, GatewayIntentBits, REST, Routes, PermissionFlagsBits } from 'discord.js';
+import { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import chalk from 'chalk';
 import logger from './utils/logger.js';
 import { createTerminalEmbed, formatTerminalResponse, formatModAction, formatServerInfo, formatUserInfo, formatThreatScan, formatStatusReport, formatNexusHelp } from './utils/terminal.js';
@@ -8,7 +9,8 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildModeration
+    GatewayIntentBits.GuildModeration,
+    GatewayIntentBits.GuildVoiceStates
   ]
 });
 
@@ -159,6 +161,23 @@ const commands = [
     name: 'ping',
     description: 'Check system latency',
     options: []
+  },
+  {
+    name: 'voice-join',
+    description: '[NAY] Establish voice channel presence',
+    options: [
+      {
+        name: 'channel',
+        description: 'Voice channel to join',
+        type: 7,
+        required: false
+      }
+    ]
+  },
+  {
+    name: 'voice-leave',
+    description: '[NAY] Disconnect from voice channel',
+    options: []
   }
 ];
 
@@ -273,6 +292,12 @@ client.on('interactionCreate', async interaction => {
         break;
       case 'userinfo':
         await handleUserInfo(interaction);
+        break;
+      case 'voice-join':
+        await handleVoiceJoin(interaction);
+        break;
+      case 'voice-leave':
+        await handleVoiceLeave(interaction);
         break;
       default:
         await interaction.editReply({
@@ -611,6 +636,132 @@ async function handleUserInfo(interaction) {
       interaction.user.username,
       `nexus-personnel ${target.user.username}`,
       info,
+      true
+    )
+  });
+}
+
+async function handleVoiceJoin(interaction) {
+  const channelOption = interaction.options.getChannel('channel');
+  let voiceChannel = channelOption;
+
+  if (!voiceChannel) {
+    const member = interaction.member;
+    voiceChannel = member.voice.channel;
+  }
+
+  if (!voiceChannel) {
+    return interaction.editReply({
+      embeds: [createTerminalEmbed(
+        'Voice Channel Required',
+        'You must be in a voice channel or specify one to establish presence',
+        'error'
+      )]
+    });
+  }
+
+  if (voiceChannel.type !== 2) {
+    return interaction.editReply({
+      embeds: [createTerminalEmbed(
+        'Invalid Channel Type',
+        'Target must be a voice channel, not a text or stage channel',
+        'error'
+      )]
+    });
+  }
+
+  const permissions = voiceChannel.permissionsFor(interaction.guild.members.me);
+  if (!permissions.has(PermissionFlagsBits.Connect) || !permissions.has(PermissionFlagsBits.Speak)) {
+    return interaction.editReply({
+      embeds: [createTerminalEmbed(
+        'Insufficient Permissions',
+        'I lack CONNECT or SPEAK permissions for that channel',
+        'error'
+      )]
+    });
+  }
+
+  try {
+    const connection = joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: interaction.guild.id,
+      adapterCreator: interaction.guild.voiceAdapterCreator,
+      selfDeaf: false,
+      selfMute: false
+    });
+
+    connection.on(VoiceConnectionStatus.Ready, () => {
+      logger.success(`Voice connection established in ${voiceChannel.name}`);
+    });
+
+    connection.on(VoiceConnectionStatus.Disconnected, () => {
+      logger.warn(`Voice connection lost from ${voiceChannel.name}`);
+    });
+
+    const output = [
+      `╔════════════════════════════════════════╗`,
+      `║  VOICE PRESENCE ESTABLISHED            ║`,
+      `╠════════════════════════════════════════╣`,
+      `║ Channel   : ${voiceChannel.name.substring(0, 28).padEnd(28)}║`,
+      `║ Status    : CONNECTED`.padEnd(43) + `║`,
+      `║ Protocol  : Voice Link Active`.padEnd(43) + `║`,
+      `║ Mode      : Monitoring`.padEnd(43) + `║`,
+      `╚════════════════════════════════════════╝`,
+      `\n[NAY]: Voice channel presence established. Monitoring for anomalies.`
+    ].join('\n');
+
+    await interaction.editReply({
+      content: formatTerminalResponse(
+        interaction.user.username,
+        `voice-connect ${voiceChannel.name}`,
+        output,
+        true
+      )
+    });
+  } catch (error) {
+    logger.error('Failed to join voice channel', error);
+    await interaction.editReply({
+      embeds: [createTerminalEmbed(
+        'Connection Failed',
+        `Unable to establish voice presence: ${error.message}`,
+        'error'
+      )]
+    });
+  }
+}
+
+async function handleVoiceLeave(interaction) {
+  const connection = getVoiceConnection(interaction.guild.id);
+
+  if (!connection) {
+    return interaction.editReply({
+      embeds: [createTerminalEmbed(
+        'No Active Connection',
+        'I am not currently connected to any voice channel in this sector',
+        'warn'
+      )]
+    });
+  }
+
+  connection.destroy();
+  logger.info('Voice connection terminated');
+
+  const output = [
+    `╔════════════════════════════════════════╗`,
+    `║  VOICE PRESENCE TERMINATED             ║`,
+    `╠════════════════════════════════════════╣`,
+    `║ Status    : DISCONNECTED`.padEnd(43) + `║`,
+    `║ Reason    : Manual disconnect`.padEnd(43) + `║`,
+    `║ Protocol  : Voice Link Closed`.padEnd(43) + `║`,
+    `╚════════════════════════════════════════╝`,
+    `\n[NAY]: Voice channel presence terminated. Returning to standard operations.`
+  ].join('\n');
+
+  await interaction.editReply({
+    content: formatTerminalResponse(
+      interaction.user.username,
+      'voice-disconnect',
+      output,
       true
     )
   });
